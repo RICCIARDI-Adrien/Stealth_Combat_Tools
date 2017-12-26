@@ -119,6 +119,28 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 		printf("Tag %d name : '%s', data offset : 0x%08X, data size : %d bytes.\n", i, Pointer_Output_Buffer[i].Pointer_String_Name, Pointer_Output_Buffer[i].Data_Offset, Pointer_Output_Buffer[i].Data_Size);
 	}
 	
+	// Read tags data
+	for (i = 0; i < Tags_Count; i++)
+	{
+		// Allocate tag data
+		Pointer_Output_Buffer[i].Pointer_Data = malloc(Pointer_Output_Buffer[i].Data_Size);
+		if (Pointer_Output_Buffer[i].Pointer_Data == NULL)
+		{
+			printf("Error : failed to allocate %d tag data buffer (%s).\n", i, strerror(errno));
+			goto Exit;
+		}
+		
+		// Read tag data
+		if (fread(Pointer_Output_Buffer[i].Pointer_Data, 1, Pointer_Output_Buffer[i].Data_Size, Pointer_File_Archive) != Pointer_Output_Buffer[i].Data_Size)
+		{
+			printf("Error : failed to read tag %d data (%s).\n", i, strerror(errno));
+			goto Exit;
+		}
+		
+		printf("Read tag %d data.\n", i);
+	}
+	
+	printf("IDP archive successfully read.\n");
 	Return_Value = 0;
 	
 Exit:
