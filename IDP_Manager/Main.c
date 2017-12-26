@@ -36,6 +36,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	TIDPArchiveTag *Pointer_IDP_Tags;
 	int Tags_Count, i, j, Return_Value = -1;
 	char *Pointer_String, String_File_Name[256], String_File_Path[256]; // 256 characters should be enough
+	FILE *Pointer_File_Data;
 	
 	// Try to uncompress the IDP archive
 	if (IDPArchiveRead(Pointer_String_Input_File, &Pointer_IDP_Tags, &Tags_Count) != 0)
@@ -94,9 +95,30 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, j); // Copy up to the character before the '/' (-1 removes the last '/')
 		String_File_Path[j] = 0; // Append terminating zero
 		
-		// TEST
-		printf("file : %s\n", String_File_Name);
-		printf("dir : %s\n", String_File_Path);
+		// Create target directory
+		if (mkdir(String_File_Path, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+		{
+			if (errno != EEXIST)
+			{
+				printf("Error : failed to create tag %d data directory '%s' (%s).\n", i, String_File_Path, strerror(errno));
+				goto Exit;
+			}
+		}
+		
+		// Create data file
+		Pointer_File_Data = fopen(Pointer_IDP_Tags[i].Pointer_String_Name, "wb");
+		if (Pointer_File_Data == NULL)
+		{
+			printf("Error : failed to open tag %d data file (%s).\n", i, strerror(errno));
+			goto Exit;
+		}
+		// Fill data file
+		if (fwrite(Pointer_IDP_Tags[i].Pointer_Data, 1, Pointer_IDP_Tags[i].Data_Size, Pointer_File_Data) != Pointer_IDP_Tags[i].Data_Size)
+		{
+			printf("Error : failed to write tag %d data file (%s).\n", i, strerror(errno));
+			goto Exit;
+		}
+		fclose(Pointer_File_Data);
 	}
 	
 	printf("All files were successfully created.\n");
