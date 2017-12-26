@@ -35,7 +35,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 {
 	TIDPArchiveTag *Pointer_IDP_Tags;
 	int Tags_Count, i, j, Return_Value = -1;
-	char *Pointer_String, String_File_Name[256], String_File_Path[256]; // 256 characters should be enough
+	char *Pointer_String_File_Name, String_System_Command[256], String_File_Path[256]; // 256 characters should be enough
 	FILE *Pointer_File_Data;
 	
 	// Try to uncompress the IDP archive
@@ -65,7 +65,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	// Create all tag-related files
 	for (i = 0; i < Tags_Count; i++)
 	{
-		printf("Creating tag %d (name : '%s', size : %d bytes).\n", i, Pointer_IDP_Tags[i].Pointer_String_Name, Pointer_IDP_Tags[i].Data_Size);
+		printf("Creating tag %d data file (name : '%s', size : %d bytes).\n", i, Pointer_IDP_Tags[i].Pointer_String_Name, Pointer_IDP_Tags[i].Data_Size);
 		
 		// Extract the file name and the directories path from the tag name
 		// Replace all Windows '\' by UNIX '/' (which works also on Windows)
@@ -76,34 +76,21 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 			j++;
 		}
 		// Find the file name beginning
-		Pointer_String = strrchr(Pointer_IDP_Tags[i].Pointer_String_Name, '/');
-		if (Pointer_String == NULL)
+		Pointer_String_File_Name = strrchr(Pointer_IDP_Tags[i].Pointer_String_Name, '/');
+		if (Pointer_String_File_Name == NULL)
 		{
 			printf("Error : could not retrieve the last '/' in the name string.\n");
 			goto Exit;
 		}
-		Pointer_String++; // Bypass the last '/'
-		// Extract file name
-		if (strlen(Pointer_String) > sizeof(String_File_Name) - 1) // -1 to bypass to keep room for terminating zero
-		{
-			printf("Error : file name string buffer is too small.\n");
-			goto Exit;
-		}
-		strcpy(String_File_Name, Pointer_String);
+		Pointer_String_File_Name++; // Bypass the last '/'
 		// Extract file path
-		j = strlen(Pointer_IDP_Tags[i].Pointer_String_Name) - strlen(String_File_Name) - 1; // Recycle j variable
+		j = strlen(Pointer_IDP_Tags[i].Pointer_String_Name) - strlen(Pointer_String_File_Name) - 1; // Recycle j variable
 		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, j); // Copy up to the character before the '/' (-1 removes the last '/')
 		String_File_Path[j] = 0; // Append terminating zero
 		
-		// Create target directory
-		if (mkdir(String_File_Path, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
-		{
-			if (errno != EEXIST)
-			{
-				printf("Error : failed to create tag %d data directory '%s' (%s).\n", i, String_File_Path, strerror(errno));
-				goto Exit;
-			}
-		}
+		// Create target directories with no safety but no effort
+		sprintf(String_System_Command, "mkdir -p %s", String_File_Path);
+		system(String_System_Command);
 		
 		// Create data file
 		Pointer_File_Data = fopen(Pointer_IDP_Tags[i].Pointer_String_Name, "wb");
