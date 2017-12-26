@@ -30,10 +30,10 @@ typedef struct
 /** Extract all data from an IDP file and store it in a dynamically allocated buffer.
  * @param Pointer_String_IDP_File The IDP file to read.
  * @param Pointer_Pointer_Output_Buffer On output, contain data in an usable form. Call IDPArchiveFreeBuffer() to release all allocated memory when the buffer is not used anymore.
- * @param Pointer_Output_Buffer_Size On output, tell the size in bytes of the output buffer.
+ * @param Pointer_Tags_Count On output, tell how many tags are contained in the buffer.
  * @return 0 if archive data were successfully retrieved,
  * @return -1 if an error occurred.
  */
-int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Pointer_Output_Buffer, int *Pointer_Output_Buffer_Size);
+int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Pointer_Output_Buffer, int *Pointer_Tags_Count);
 
 #endif

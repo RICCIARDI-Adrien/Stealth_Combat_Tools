@@ -2,11 +2,14 @@
  * Allow to uncompress or to create an IDP archive file (like SCom.idp).
  * @author Adrien RICCIARDI
  */
-#include <IDP_Archive.h>
 #include <errno.h>
+#include <IDP_Archive.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 //-------------------------------------------------------------------------------------------------
 // Private functions
@@ -31,10 +34,77 @@ static void MainDisplayProgramUsage(char *Pointer_String_Program_Name)
 static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Output_Directory)
 {
 	TIDPArchiveTag *Pointer_IDP_Tags;
-	int Buffer_Size;
+	int Tags_Count, i, j, Return_Value = -1;
+	char *Pointer_String, String_File_Name[256], String_File_Path[256]; // 256 characters should be enough
 	
-	// TEST
-	return IDPArchiveRead(Pointer_String_Input_File, &Pointer_IDP_Tags, &Buffer_Size);
+	// Try to uncompress the IDP archive
+	if (IDPArchiveRead(Pointer_String_Input_File, &Pointer_IDP_Tags, &Tags_Count) != 0)
+	{
+		printf("Error : failed to uncompress IDP archive.\n");
+		return -1;
+	}
+	
+	// Try to create the output directory
+	if (mkdir(Pointer_File_Output_Directory, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	{
+		if (errno != EEXIST)
+		{
+			printf("Error : failed to create output directory (%s).\n", strerror(errno));
+			goto Exit;
+		}
+	}
+	
+	// Go to output directory to avoid prefixing all paths with the output directory one
+	if (chdir(Pointer_File_Output_Directory) != 0)
+	{
+		printf("Error : failed to change to output directory (%s).\n", strerror(errno));
+		goto Exit;
+	}
+	
+	// Create all tag-related files
+	for (i = 0; i < Tags_Count; i++)
+	{
+		printf("Creating tag %d (name : '%s', size : %d bytes).\n", i, Pointer_IDP_Tags[i].Pointer_String_Name, Pointer_IDP_Tags[i].Data_Size);
+		
+		// Extract the file name and the directories path from the tag name
+		// Replace all Windows '\' by UNIX '/' (which works also on Windows)
+		j = 0;
+		while (Pointer_IDP_Tags[i].Pointer_String_Name[j] != 0)
+		{
+			if (Pointer_IDP_Tags[i].Pointer_String_Name[j] == '\\') Pointer_IDP_Tags[i].Pointer_String_Name[j] = '/';
+			j++;
+		}
+		// Find the file name beginning
+		Pointer_String = strrchr(Pointer_IDP_Tags[i].Pointer_String_Name, '/');
+		if (Pointer_String == NULL)
+		{
+			printf("Error : could not retrieve the last '/' in the name string.\n");
+			goto Exit;
+		}
+		Pointer_String++; // Bypass the last '/'
+		// Extract file name
+		if (strlen(Pointer_String) > sizeof(String_File_Name) - 1) // -1 to bypass to keep room for terminating zero
+		{
+			printf("Error : file name string buffer is too small.\n");
+			goto Exit;
+		}
+		strcpy(String_File_Name, Pointer_String);
+		// Extract file path
+		j = strlen(Pointer_IDP_Tags[i].Pointer_String_Name) - strlen(String_File_Name) - 1; // Recycle j variable
+		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, j); // Copy up to the character before the '/' (-1 removes the last '/')
+		String_File_Path[j] = 0; // Append terminating zero
+		
+		// TEST
+		printf("file : %s\n", String_File_Name);
+		printf("dir : %s\n", String_File_Path);
+	}
+	
+	printf("All files were successfully created.\n");
+	Return_Value = 0;
+	
+Exit:
+	// TODO release buffer
+	return Return_Value;
 }
 
 //-------------------------------------------------------------------------------------------------

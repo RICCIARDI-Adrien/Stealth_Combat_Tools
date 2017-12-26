@@ -2,8 +2,8 @@
  * @see IDP_Archive.h for description.
  * @author Adrien RICCIARDI
  */
-#include <IDP_Archive.h>
 #include <errno.h>
+#include <IDP_Archive.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +11,7 @@
 //-------------------------------------------------------------------------------------------------
 // Public functions
 //-------------------------------------------------------------------------------------------------
-int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Pointer_Output_Buffer, int *Pointer_Output_Buffer_Size)
+int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Pointer_Output_Buffer, int *Pointer_Tags_Count)
 {
 	int Return_Value = -1, Tags_Count, i, Temporary_Double_Word;
 	FILE *Pointer_File_Archive;
@@ -139,6 +139,9 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 		
 		printf("Read tag %d data.\n", i);
 	}
+	
+	*Pointer_Pointer_Output_Buffer = Pointer_Output_Buffer;
+	*Pointer_Tags_Count = Tags_Count;
 	
 	printf("IDP archive successfully read.\n");
 	Return_Value = 0;
