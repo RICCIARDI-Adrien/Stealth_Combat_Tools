@@ -112,7 +112,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	Return_Value = 0;
 	
 Exit:
-	// TODO release buffer
+	IDPArchiveFreeBuffer(Pointer_IDP_Tags, Tags_Count);
 	return Return_Value;
 }
 

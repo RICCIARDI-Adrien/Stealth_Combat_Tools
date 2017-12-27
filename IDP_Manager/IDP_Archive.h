@@ -36,4 +36,10 @@ typedef struct
  */
 int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Pointer_Output_Buffer, int *Pointer_Tags_Count);
 
+/** Free all allocated memory in buffer internal fields an buffer itself.
+ * @param Pointer_Buffer The buffer to release.
+ * @param Tags_Count How many tags the buffer contains.
+ */
+void IDPArchiveFreeBuffer(TIDPArchiveTag *Pointer_Buffer, int Tags_Count);
+
 #endif

@@ -69,6 +69,8 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 		printf("Error : failed to allocate the output buffer (%s).\n", strerror(errno));
 		goto Exit;
 	}
+	// Reset buffer to make all pointers NULL
+	memset(Pointer_Output_Buffer, 0, sizeof(TIDPArchiveTag) * Tags_Count);
 	
 	// Read all tags
 	for (i = 0; i < Tags_Count; i++)
@@ -77,7 +79,7 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 		if (fread(&Temporary_Double_Word, 1, 4, Pointer_File_Archive) != 4)
 		{
 			printf("Error : failed to read tag %d name size (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		// Allocate tag name
@@ -85,35 +87,35 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 		if (Pointer_Output_Buffer[i].Pointer_String_Name == NULL)
 		{
 			printf("Error : failed to allocate tag %d name buffer (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		// Read tag name
 		if (fread(Pointer_Output_Buffer[i].Pointer_String_Name, 1, Temporary_Double_Word, Pointer_File_Archive) != Temporary_Double_Word)
 		{
 			printf("Error : failed to read tag %d name string (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		// Read data offset
 		if (fread(&Pointer_Output_Buffer[i].Data_Offset, 1, 4, Pointer_File_Archive) != 4)
 		{
 			printf("Error : failed to read tag %d data offset (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		// Read data size
 		if (fread(&Pointer_Output_Buffer[i].Data_Size, 1, 4, Pointer_File_Archive) != 4)
 		{
 			printf("Error : failed to read tag %d data size (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		// Bypass following 8 bytes that are unknown for now (maybe flags ?)
 		if (fread(String_Temporary, 1, 8, Pointer_File_Archive) != 8)
 		{
 			printf("Error : failed to read tag %d unknown bytes (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		printf("Tag %d name : '%s', data offset : 0x%08X, data size : %d bytes.\n", i, Pointer_Output_Buffer[i].Pointer_String_Name, Pointer_Output_Buffer[i].Data_Offset, Pointer_Output_Buffer[i].Data_Size);
@@ -127,14 +129,14 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 		if (Pointer_Output_Buffer[i].Pointer_Data == NULL)
 		{
 			printf("Error : failed to allocate %d tag data buffer (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		// Read tag data
 		if (fread(Pointer_Output_Buffer[i].Pointer_Data, 1, Pointer_Output_Buffer[i].Data_Size, Pointer_File_Archive) != Pointer_Output_Buffer[i].Data_Size)
 		{
 			printf("Error : failed to read tag %d data (%s).\n", i, strerror(errno));
-			goto Exit;
+			goto Exit_Free_Buffer;
 		}
 		
 		printf("Read tag %d data.\n", i);
@@ -145,8 +147,38 @@ int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Point
 	
 	printf("IDP archive successfully read.\n");
 	Return_Value = 0;
+	goto Exit; // Do not free the buffer now that it is successfully filled
+	
+Exit_Free_Buffer:
+	IDPArchiveFreeBuffer(Pointer_Output_Buffer, Tags_Count);
 	
 Exit:
 	if (Pointer_File_Archive != NULL) fclose(Pointer_File_Archive);
 	return Return_Value;
+}
+
+void IDPArchiveFreeBuffer(TIDPArchiveTag *Pointer_Buffer, int Tags_Count)
+{
+	int i;
+	
+	// Release all allocated data in buffer internal fields
+	for (i = 0; i < Tags_Count; i++)
+	{
+		// Release tag name
+		if (Pointer_Buffer[i].Pointer_String_Name != NULL)
+		{
+			free(Pointer_Buffer[i].Pointer_String_Name);
+			Pointer_Buffer[i].Pointer_String_Name = NULL;
+		}
+		
+		// Release tag data
+		if (Pointer_Buffer[i].Pointer_Data != NULL)
+		{
+			free(Pointer_Buffer[i].Pointer_Data);
+			Pointer_Buffer[i].Pointer_Data = NULL;
+		}
+	}
+	
+	// Release buffer itself
+	free(Pointer_Buffer);
 }
