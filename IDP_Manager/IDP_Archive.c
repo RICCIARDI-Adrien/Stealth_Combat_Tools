@@ -9,6 +9,12 @@
 #include <string.h>
 
 //-------------------------------------------------------------------------------------------------
+// Private constants
+//-------------------------------------------------------------------------------------------------
+/** IDP header byte offset 4, called "version" in the Stealth Combat executable. */
+#define IDP_ARCHIVE_HEADER_VERSION 0x64
+
+//-------------------------------------------------------------------------------------------------
 // Public functions
 //-------------------------------------------------------------------------------------------------
 int IDPArchiveRead(char *Pointer_String_IDP_File, TIDPArchiveTag **Pointer_Pointer_Output_Buffer, int *Pointer_Tags_Count)

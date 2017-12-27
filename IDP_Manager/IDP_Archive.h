@@ -1,16 +1,9 @@
 /** @file IDP_Archive.h
  * Gather all discovered information about IDP files.
  * @author Adrien RICCIARDI
- * TODO : add IDP file structure
  */
 #ifndef H_IDP_ARCHIVE_H
 #define H_IDP_ARCHIVE_H
-
-//-------------------------------------------------------------------------------------------------
-// Constants
-//-------------------------------------------------------------------------------------------------
-/** IDP header byte offset 4, called "version" in the Stealth Combat executable. */
-#define IDP_ARCHIVE_HEADER_VERSION 0x64
 
 //-------------------------------------------------------------------------------------------------
 // Types
