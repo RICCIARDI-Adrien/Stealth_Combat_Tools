@@ -46,7 +46,11 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	}
 	
 	// Try to create the output directory
-	if (mkdir(Pointer_File_Output_Directory, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	#ifdef __WIN32__
+		if (mkdir(Pointer_File_Output_Directory) != 0)
+	#else
+		if (mkdir(Pointer_File_Output_Directory, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	#endif
 	{
 		if (errno != EEXIST)
 		{
@@ -68,28 +72,32 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 		printf("Creating tag %d data file (name : '%s', size : %d bytes).\n", i, Pointer_IDP_Tags[i].Pointer_String_Name, Pointer_IDP_Tags[i].Data_Size);
 		
 		// Extract the file name and the directories path from the tag name
-		// Replace all Windows '\' by UNIX '/' (which works also on Windows)
-		j = 0;
-		while (Pointer_IDP_Tags[i].Pointer_String_Name[j] != 0)
-		{
-			if (Pointer_IDP_Tags[i].Pointer_String_Name[j] == '\\') Pointer_IDP_Tags[i].Pointer_String_Name[j] = '/';
-			j++;
-		}
 		// Find the file name beginning
-		Pointer_String_File_Name = strrchr(Pointer_IDP_Tags[i].Pointer_String_Name, '/');
+		Pointer_String_File_Name = strrchr(Pointer_IDP_Tags[i].Pointer_String_Name, '\\');
 		if (Pointer_String_File_Name == NULL)
 		{
-			printf("Error : could not retrieve the last '/' in the name string.\n");
+			printf("Error : could not retrieve the last '\\' in the name string.\n");
 			goto Exit;
 		}
-		Pointer_String_File_Name++; // Bypass the last '/'
+		Pointer_String_File_Name++; // Bypass the last '\'
 		// Extract file path
 		j = strlen(Pointer_IDP_Tags[i].Pointer_String_Name) - strlen(Pointer_String_File_Name) - 1; // Recycle j variable
-		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, j); // Copy up to the character before the '/' (-1 removes the last '/')
+		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, j); // Copy up to the character before the '\' (-1 removes the last '\')
 		String_File_Path[j] = 0; // Append terminating zero
 		
 		// Create target directories with no safety but no effort
-		sprintf(String_System_Command, "mkdir -p %s", String_File_Path);
+		#ifdef __WIN32__
+			sprintf(String_System_Command, "mkdir %s", String_File_Path);
+		#else
+			// Replace all Windows '\' by UNIX '/' to make mkdir command works
+			j = 0;
+			while (String_File_Path[j] != 0)
+			{
+				if (String_File_Path[j] == '\\') String_File_Path[j] = '/';
+				j++;
+			}
+			sprintf(String_System_Command, "mkdir -p %s", String_File_Path);
+		#endif
 		system(String_System_Command);
 		
 		// Create data file
