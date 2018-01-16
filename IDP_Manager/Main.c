@@ -2,14 +2,11 @@
  * Allow to uncompress or to create an IDP archive file (like SCom.idp).
  * @author Adrien RICCIARDI
  */
-#include <errno.h>
+#include <direct.h>
 #include <IDP_Archive.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <Windows.h>
 
 //-------------------------------------------------------------------------------------------------
 // Private functions
@@ -46,11 +43,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	}
 	
 	// Try to create the output directory
-	#ifdef __WIN32__
-		if (mkdir(Pointer_File_Output_Directory) != 0)
-	#else
-		if (mkdir(Pointer_File_Output_Directory, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
-	#endif
+	if (mkdir(Pointer_File_Output_Directory) != 0)
 	{
 		if (errno != EEXIST)
 		{
@@ -86,18 +79,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 		String_File_Path[j] = 0; // Append terminating zero
 		
 		// Create target directories with no safety but no effort
-		#ifdef __WIN32__
-			sprintf(String_System_Command, "mkdir %s", String_File_Path);
-		#else
-			// Replace all Windows '\' by UNIX '/' to make mkdir command works
-			j = 0;
-			while (String_File_Path[j] != 0)
-			{
-				if (String_File_Path[j] == '\\') String_File_Path[j] = '/';
-				j++;
-			}
-			sprintf(String_System_Command, "mkdir -p %s", String_File_Path);
-		#endif
+		sprintf(String_System_Command, "mkdir %s > NUL", String_File_Path);
 		system(String_System_Command);
 		
 		// Create data file

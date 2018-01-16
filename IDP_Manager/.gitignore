@@ -1,3 +1,5 @@
-*.exe
-idp-manager
-
+.vs
+Debug
+Release
+*.vcxproj.filters
+*.vcxproj.user
