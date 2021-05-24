@@ -31,9 +31,10 @@ static void MainDisplayProgramUsage(char *Pointer_String_Program_Name)
 static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Output_Directory)
 {
 	TIDPArchiveTag *Pointer_IDP_Tags;
-	int Tags_Count, i, j, Return_Value = -1;
+	int Tags_Count, i, Return_Value = -1;
 	char *Pointer_String_File_Name, String_System_Command[256], String_File_Path[256]; // 256 characters should be enough
 	FILE *Pointer_File_Data;
+	size_t Length;
 	
 	// Try to uncompress the IDP archive
 	if (IDPArchiveRead(Pointer_String_Input_File, &Pointer_IDP_Tags, &Tags_Count) != 0)
@@ -43,7 +44,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	}
 	
 	// Try to create the output directory
-	if (mkdir(Pointer_File_Output_Directory) != 0)
+	if (_mkdir(Pointer_File_Output_Directory) != 0)
 	{
 		if (errno != EEXIST)
 		{
@@ -53,7 +54,7 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 	}
 	
 	// Go to output directory to avoid prefixing all paths with the output directory one
-	if (chdir(Pointer_File_Output_Directory) != 0)
+	if (_chdir(Pointer_File_Output_Directory) != 0)
 	{
 		printf("Error : failed to change to output directory (%s).\n", strerror(errno));
 		goto Exit;
@@ -74,9 +75,9 @@ static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Ou
 		}
 		Pointer_String_File_Name++; // Bypass the last '\'
 		// Extract file path
-		j = strlen(Pointer_IDP_Tags[i].Pointer_String_Name) - strlen(Pointer_String_File_Name) - 1; // Recycle j variable
-		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, j); // Copy up to the character before the '\' (-1 removes the last '\')
-		String_File_Path[j] = 0; // Append terminating zero
+		Length = strlen(Pointer_IDP_Tags[i].Pointer_String_Name) - strlen(Pointer_String_File_Name) - 1;
+		strncpy(String_File_Path, Pointer_IDP_Tags[i].Pointer_String_Name, Length); // Copy up to the character before the '\' (-1 removes the last '\')
+		String_File_Path[Length] = 0; // Append terminating zero
 		
 		// Create target directories with no safety but no effort
 		sprintf(String_System_Command, "mkdir %s > NUL", String_File_Path);
