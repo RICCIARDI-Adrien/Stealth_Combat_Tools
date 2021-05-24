@@ -3,10 +3,10 @@
  * @author Adrien RICCIARDI
  */
 #include <direct.h>
-#include <IDP_Archive.h>
 #include <stdio.h>
 #include <string.h>
 #include <Windows.h>
+#include "IDP_Archive.h"
 
 //-------------------------------------------------------------------------------------------------
 // Private functions

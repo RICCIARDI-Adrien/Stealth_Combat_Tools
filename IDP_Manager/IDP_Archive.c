@@ -1,12 +1,12 @@
 /** @file IDP_Archive.c
- * @see IDP_Archive.h for description.
+ * See IDP_Archive.h for description.
  * @author Adrien RICCIARDI
  */
 #include <errno.h>
-#include <IDP_Archive.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "IDP_Archive.h"
 
 //-------------------------------------------------------------------------------------------------
 // Private constants
