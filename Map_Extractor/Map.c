@@ -65,8 +65,46 @@ static int MapRecordHandlerIdentifier1(unsigned char *Pointer_Payload, int Paylo
  */
 static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Payload_Size, char *Pointer_String_Output_Path)
 {
-	printf("Found a tile def pool (i.e. terrain geometry) record. It is currently not supported.\n");
+	FILE *Pointer_File;
+	int t, x, y;
+	char String_Output_File_Name[2048];
+	short *Pointer_Word;
 
+	printf("Found a tile def pool (i.e. terrain geometry) record.\n");
+
+	// Bypass the first 4 bytes (their value is currently unknown)
+	Pointer_Payload += 4;
+	Pointer_Word = (short *) Pointer_Payload;
+
+	// Generate the output file name
+	snprintf(String_Output_File_Name, sizeof(String_Output_File_Name), "%s\\Terrain_Geometry.obj", Pointer_String_Output_Path);
+	printf("Saving terrain geometry to \"%s\" file.\n", String_Output_File_Name);
+
+	// Try to open output file
+	Pointer_File = fopen(String_Output_File_Name, "w");
+	if (Pointer_File == NULL)
+	{
+		printf("Error : could not open output file (%s).\n", strerror(errno));
+		return -1;
+	}
+
+	// Create OBJ file header
+	fprintf(Pointer_File, "o terrain_geometry\n\n");
+
+	// Process all items
+	for (t = 0; t < 40; t++)
+	{
+		for (x = 0; x < 640; x++)
+		{
+			for (y = 0; y < 16; y++)
+			{
+				fprintf(Pointer_File, "v %d %d %f\n", x, y + (16 * t), *Pointer_Word / 300.f);
+				Pointer_Word += 4;
+			}
+		}
+	}
+	fclose(Pointer_File);
+	
 	return 0;
 }
 
