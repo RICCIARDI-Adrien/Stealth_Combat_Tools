@@ -339,7 +339,7 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 {
 	static unsigned char Payload_Buffer[20 * 1024 * 1024]; // 20 MB is enough for all existing maps
 	FILE *Pointer_File_Map = NULL;
-	int Return_Value = -1, Temporary_Integer, Record_Identifier, Records_Count = 1, Record_Payload_Size;
+	int Return_Value = -1, Temporary_Integer, Record_Identifier, Records_Count = 1, Record_Payload_Size, Record_Offset;
 	char String_Temporary[5];
 	MapRecordHandler Record_Handler_Functions[] =
 	{
@@ -396,6 +396,9 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 		goto Exit;
 	}
 	
+	// Take the two above tags into account
+	Record_Offset = 8;
+	
 	// Parse all file records
 	while (1)
 	{
@@ -416,14 +419,14 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 		Record_Payload_Size -= 8; // Record identifier and size tags are included into the record size field value
 
 		// Read record payload
-		if (fread(Payload_Buffer, 1, Record_Payload_Size, Pointer_File_Map) != Record_Payload_Size)
+		if (fread(Payload_Buffer, 1, Record_Payload_Size, Pointer_File_Map) != (size_t) Record_Payload_Size)
 		{
 			printf("Error : failed to read record %d payload (%s).\n", Records_Count, strerror(errno));
 			break;
 		}
 
 		// Call the corresponding record handler if the record is valid
-		printf("Found record %d. ID : %d, payload size : %d.\n", Records_Count, Record_Identifier, Record_Payload_Size);
+		printf("Found record %d at offset 0x%08X. ID : %d, payload size : %d.\n", Records_Count, Record_Offset, Record_Identifier, Record_Payload_Size);
 		// Exit when the last record is detected
 		if (Record_Identifier == 4097)
 		{
@@ -432,18 +435,21 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 			break;
 		}
 		// Make sure the record identifier is valid
-		if ((Record_Identifier < 0) || (Record_Identifier >= MAP_MAXIMUM_RECORD_IDENTIFIER))
+		if ((Record_Identifier < 0) || (Record_Identifier >= MAP_MAXIMUM_RECORD_IDENTIFIER)) printf("This record is not supported, bypassing it.\n");
+		else
 		{
-			printf("This record is not supported, bypassing it.\n");
-			continue;
+			// Try to extract the record content
+			if (Record_Handler_Functions[Record_Identifier](Payload_Buffer, Record_Payload_Size, Pointer_String_Output_Path) != 0)
+			{
+				printf("Error : failed to handle a record payload, aborting program.\n");
+				break;
+			}
 		}
-		// Try to extract the record content
-		if (Record_Handler_Functions[Record_Identifier](Payload_Buffer, Record_Payload_Size, Pointer_String_Output_Path) != 0)
-		{
-			printf("Error : failed to handle a record payload, aborting program.\n");
-			break;
-		}
+		
+		// Adjust offset to next record beginning
+		Record_Offset += 4 + 4 + Record_Payload_Size; // Take into account record ID field, record size field and record payload field
 
+		putchar('\n');
 		Records_Count++;
 	}
 
