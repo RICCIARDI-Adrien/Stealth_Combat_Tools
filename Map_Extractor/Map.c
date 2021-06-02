@@ -13,6 +13,12 @@
 /** The maximum supported record identifier. */
 #define MAP_MAXIMUM_RECORD_IDENTIFIER 19
 
+/** How many tiles per side of the map (i.e. the map width or the map height in tile units). Map is square. */
+#define MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE 40
+
+/** How many vertices per side of a tile (i.e. a tile width or a tile height in vertex units). A tile is square. */
+#define MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE 16
+
 //-------------------------------------------------------------------------------------------------
 // Private types
 //-------------------------------------------------------------------------------------------------
@@ -66,7 +72,7 @@ static int MapRecordHandlerIdentifier1(unsigned char *Pointer_Payload, int Paylo
 static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Payload_Size, char *Pointer_String_Output_Path)
 {
 	FILE *Pointer_File;
-	int t, x, y;
+	int Tile_Starting_Offset, Vertex_X, Vertex_Y;
 	char String_Output_File_Name[2048];
 	short *Pointer_Word;
 
@@ -91,14 +97,14 @@ static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Paylo
 	// Create OBJ file header
 	fprintf(Pointer_File, "o terrain_geometry\n\n");
 
-	// Process all items
-	for (t = 0; t < 40; t++)
+	// Process all vertices
+	for (Tile_Starting_Offset = 0; Tile_Starting_Offset < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Tile_Starting_Offset += MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE)
 	{
-		for (x = 0; x < 640; x++)
+		for (Vertex_Y = 0; Vertex_Y < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_Y++)
 		{
-			for (y = 0; y < 16; y++)
+			for (Vertex_X = 0; Vertex_X < MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++)
 			{
-				fprintf(Pointer_File, "v %d %d %f\n", x, y + (16 * t), *Pointer_Word / 300.f);
+				fprintf(Pointer_File, "v %d %d %f\n", Tile_Starting_Offset + Vertex_X, Vertex_Y, *Pointer_Word / 300.f);
 				Pointer_Word += 4;
 			}
 		}
