@@ -336,7 +336,7 @@ static int MapGenerateTerrain(char *Pointer_String_Output_Path)
 {
 	FILE *Pointer_File;
 	char String_Output_File_Name[2048];
-	int Vertex_X, Vertex_Y;
+	int Vertex_X, Vertex_Y, Face_Vertices_Offset, Tile_Row;
 	
 	// Generate the output file name
 	snprintf(String_Output_File_Name, sizeof(String_Output_File_Name), "%s\\Terrain_Geometry.obj", Pointer_String_Output_Path);
@@ -360,6 +360,18 @@ static int MapGenerateTerrain(char *Pointer_String_Output_Path)
 		for (Vertex_X = 0; Vertex_X < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++) fprintf(Pointer_File, "v %d %d %f\n", Vertex_X, Vertex_Y, MapTerrainHeights[Vertex_Y][Vertex_X]);
 	}
 	
+	// Generate quad faces from the vertices
+	printf("Adding faces...\n");
+	for (Tile_Row = 0; Tile_Row < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE * ((MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE) - 1); Tile_Row += MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE)
+	{
+		for (Vertex_X = 1; Vertex_X < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++)
+		{
+			Face_Vertices_Offset = Vertex_X + Tile_Row;
+			fprintf(Pointer_File, "f %d %d %d %d\n", Face_Vertices_Offset, Face_Vertices_Offset + 1, Face_Vertices_Offset + (MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE) + 1, Face_Vertices_Offset + (MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE));
+		}
+	}
+	
+	printf("Terrain was successfully generated.\n");
 	fclose(Pointer_File);
 	
 	return 0;
@@ -463,7 +475,7 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 		// Exit when the last record is detected
 		if (Record_Identifier == 4097)
 		{
-			printf("End-of-file record has been found, exiting.\n");
+			printf("End-of-file record has been found, exiting.\n\n");
 			Return_Value = 0;
 			break;
 		}
