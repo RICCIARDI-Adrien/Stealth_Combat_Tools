@@ -32,6 +32,12 @@
 typedef int (*MapRecordHandler)(unsigned char *Pointer_Payload, int Payload_Size, char *Pointer_String_Output_Path);
 
 //-------------------------------------------------------------------------------------------------
+// Private variables
+//-------------------------------------------------------------------------------------------------
+/** Hold the terrain heightmap. */
+static float MapTerrainHeights[MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE][MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE];
+
+//-------------------------------------------------------------------------------------------------
 // Private functions
 //-------------------------------------------------------------------------------------------------
 /** Handle type 0 records.
@@ -71,9 +77,7 @@ static int MapRecordHandlerIdentifier1(unsigned char *Pointer_Payload, int Paylo
  */
 static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Payload_Size, char *Pointer_String_Output_Path)
 {
-	FILE *Pointer_File;
 	int Tile_Starting_Offset, Vertex_X, Vertex_Y;
-	char String_Output_File_Name[2048];
 	short *Pointer_Word;
 
 	printf("Found a tile def pool (i.e. terrain geometry) record.\n");
@@ -82,21 +86,6 @@ static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Paylo
 	Pointer_Payload += 4;
 	Pointer_Word = (short *) Pointer_Payload;
 
-	// Generate the output file name
-	snprintf(String_Output_File_Name, sizeof(String_Output_File_Name), "%s\\Terrain_Geometry.obj", Pointer_String_Output_Path);
-	printf("Saving terrain geometry to \"%s\" file.\n", String_Output_File_Name);
-
-	// Try to open output file
-	Pointer_File = fopen(String_Output_File_Name, "w");
-	if (Pointer_File == NULL)
-	{
-		printf("Error : could not open output file (%s).\n", strerror(errno));
-		return -1;
-	}
-
-	// Create OBJ file header
-	fprintf(Pointer_File, "o terrain_geometry\n\n");
-
 	// Process all vertices
 	for (Tile_Starting_Offset = 0; Tile_Starting_Offset < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Tile_Starting_Offset += MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE)
 	{
@@ -104,12 +93,12 @@ static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Paylo
 		{
 			for (Vertex_X = 0; Vertex_X < MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++)
 			{
-				fprintf(Pointer_File, "v %d %d %f\n", Tile_Starting_Offset + Vertex_X, Vertex_Y, *Pointer_Word / 300.f);
+				MapTerrainHeights[Vertex_Y][Tile_Starting_Offset + Vertex_X] = *Pointer_Word / 300.f;
 				Pointer_Word += 4;
 			}
 		}
 	}
-	fclose(Pointer_File);
+	printf("Terrain geometry has been extracted.\n");
 	
 	return 0;
 }
@@ -338,6 +327,44 @@ static int MapRecordHandlerIdentifier18(unsigned char *Pointer_Payload, int Payl
 	return 0;
 }
 
+/** Use the data extracted from various records to create a Wavefront OBJ file containing the terrain geometry.
+ * @param Pointer_String_Output_Path On output, generated files will be stored to this location.
+ * @return -1 if an error occurred,
+ * @return 0 on success.
+ */
+static int MapGenerateTerrain(char *Pointer_String_Output_Path)
+{
+	FILE *Pointer_File;
+	char String_Output_File_Name[2048];
+	int Vertex_X, Vertex_Y;
+	
+	// Generate the output file name
+	snprintf(String_Output_File_Name, sizeof(String_Output_File_Name), "%s\\Terrain_Geometry.obj", Pointer_String_Output_Path);
+	printf("Saving terrain geometry to \"%s\" file.\n", String_Output_File_Name);
+	
+	// Try to open output file
+	Pointer_File = fopen(String_Output_File_Name, "w");
+	if (Pointer_File == NULL)
+	{
+		printf("Error : could not open output file (%s).\n", strerror(errno));
+		return -1;
+	}
+
+	// Create OBJ file header
+	fprintf(Pointer_File, "o terrain_geometry\n\n");
+	
+	// Append vertices to file
+	printf("Adding vertices...\n");
+	for (Vertex_Y = 0; Vertex_Y < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_Y++)
+	{
+		for (Vertex_X = 0; Vertex_X < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++) fprintf(Pointer_File, "v %d %d %f\n", Vertex_X, Vertex_Y, MapTerrainHeights[Vertex_Y][Vertex_X]);
+	}
+	
+	fclose(Pointer_File);
+	
+	return 0;
+}
+
 //-------------------------------------------------------------------------------------------------
 // Public functions
 //-------------------------------------------------------------------------------------------------
@@ -457,6 +484,13 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 
 		putchar('\n');
 		Records_Count++;
+	}
+	
+	// All relevant data have been extracted to be able to generate the terrain
+	if (MapGenerateTerrain(Pointer_String_Output_Path) != 0)
+	{
+		printf("Error : could not generate terrain.\n");
+		goto Exit;
 	}
 
 Exit:
