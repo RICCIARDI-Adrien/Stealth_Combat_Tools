@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	// Check parameters
 	if (argc != 3)
 	{
-		printf("Usage : %s Map_File Output_Files_Prefix", argv[0]);
+		printf("Usage : %s Map_File Output_Files_Prefix\n", argv[0]);
 		return -1;
 	}
 

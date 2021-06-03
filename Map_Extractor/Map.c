@@ -14,7 +14,7 @@
 #define MAP_MAXIMUM_RECORD_IDENTIFIER 19
 
 /** How many tiles per side of the map (i.e. the map width or the map height in tile units). Map is square. */
-#define MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE 40
+#define MAP_TERRAIN_GEOMETRY_MAXIMUM_TILES_PER_SIDE 100
 
 /** How many vertices per side of a tile (i.e. a tile width or a tile height in vertex units). A tile is square. */
 #define MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE 16
@@ -35,7 +35,12 @@ typedef int (*MapRecordHandler)(unsigned char *Pointer_Payload, int Payload_Size
 // Private variables
 //-------------------------------------------------------------------------------------------------
 /** Hold the terrain heightmap. */
-static float MapTerrainHeights[MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE][MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE];
+static float Map_Terrain_Heights[MAP_TERRAIN_GEOMETRY_MAXIMUM_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE][MAP_TERRAIN_GEOMETRY_MAXIMUM_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE];
+
+/** How many tiles per side of the map (i.e. the map width or the map height in tile units). Map is always square. */
+static int Map_Tiles_Per_Side = -1;
+/** How many vertices per map side (i.e. the map width or the map height in vertex units). See Map_Tiles_Per_Side for more details. */
+static int Map_Vertices_Per_Side = -1;
 
 //-------------------------------------------------------------------------------------------------
 // Private functions
@@ -63,7 +68,52 @@ static int MapRecordHandlerIdentifier0(unsigned char *Pointer_Payload, int Paylo
  */
 static int MapRecordHandlerIdentifier1(unsigned char *Pointer_Payload, int Payload_Size, char *Pointer_String_Output_Path)
 {
-	printf("Found a matrix tile field record. It is currently not supported.\n");
+	int *Pointer_Double_Word = (int *) Pointer_Payload, Width, Height;
+
+	printf("Found a matrix tile field (i.e. map size and texture coordinates) record. It is currently not supported.\n");
+
+	// Retrieve terrain width and height in tile unit
+	Width = *Pointer_Double_Word;
+	Pointer_Double_Word++;
+	Height = *Pointer_Double_Word;
+
+	// Make sure the values are coherent
+	// Is the width in the allowed limits ?
+	if (Width < 0)
+	{
+		printf("Error : map width %d is invalid.\n", Width);
+		return -1;
+	}
+	if (Width >= MAP_TERRAIN_GEOMETRY_MAXIMUM_TILES_PER_SIDE)
+	{
+		printf("Error : map width %d is too large.\n", Width);
+		return -1;
+	}
+	// Is the height in the allowed limits ?
+	if (Height < 0)
+	{
+		printf("Error : map height %d is invalid.\n", Height);
+		return -1;
+	}
+	if (Height >= MAP_TERRAIN_GEOMETRY_MAXIMUM_TILES_PER_SIDE)
+	{
+		printf("Error : map height %d is too large.\n", Height);
+		return -1;
+	}
+
+	// Only square maps are supported
+	if (Width != Height)
+	{
+		printf("Error : map width (%d) and height (%d) are different, but only square maps are supported.\n", Width, Height);
+		return -1;
+	}
+
+	// Make terrain size globally available
+	Map_Tiles_Per_Side = Width; // Width and height are equal, so use any of them
+	Map_Vertices_Per_Side = Map_Tiles_Per_Side * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE;
+	printf("Extracted map size : %dx%d tiles.\n", Map_Tiles_Per_Side, Map_Tiles_Per_Side);
+
+	// TODO extract texture coordinates
 
 	return 0;
 }
@@ -82,18 +132,25 @@ static int MapRecordHandlerIdentifier2(unsigned char *Pointer_Payload, int Paylo
 
 	printf("Found a tile def pool (i.e. terrain geometry) record.\n");
 
+	// Make sure needed global variables are available
+	if ((Map_Tiles_Per_Side == -1) || (Map_Vertices_Per_Side == -1))
+	{
+		printf("Error : map coordinates have not been found. The map file is malformed and is missing a record of type 1 at the file beginning.\n");
+		return -1;
+	}
+
 	// Bypass the first 4 bytes (their value is currently unknown)
 	Pointer_Payload += 4;
 	Pointer_Word = (short *) Pointer_Payload;
 
 	// Process all vertices
-	for (Tile_Starting_Offset = 0; Tile_Starting_Offset < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Tile_Starting_Offset += MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE)
+	for (Tile_Starting_Offset = 0; Tile_Starting_Offset < Map_Vertices_Per_Side; Tile_Starting_Offset += MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE)
 	{
-		for (Vertex_Y = 0; Vertex_Y < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_Y++)
+		for (Vertex_Y = 0; Vertex_Y < Map_Vertices_Per_Side; Vertex_Y++)
 		{
 			for (Vertex_X = 0; Vertex_X < MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++)
 			{
-				MapTerrainHeights[Vertex_Y][Tile_Starting_Offset + Vertex_X] = *Pointer_Word / 300.f;
+				Map_Terrain_Heights[Vertex_Y][Tile_Starting_Offset + Vertex_X] = *Pointer_Word / 300.f;
 				Pointer_Word += 4;
 			}
 		}
@@ -336,10 +393,17 @@ static int MapGenerateTerrain(char *Pointer_String_Output_Path)
 {
 	FILE *Pointer_File;
 	char String_Output_File_Name[2048];
-	int Vertex_X, Vertex_Y, Face_Vertices_Offset, Tile_Row;
+	int Vertex_X, Vertex_Y, Face_Vertices_Offset, Tile_Row, Tiles_Count;
+	
+	// Make sure needed global variables are available
+	if ((Map_Tiles_Per_Side == -1) || (Map_Vertices_Per_Side == -1))
+	{
+		printf("Error : map coordinates have not been found. The map file is malformed and is missing a record of type 1 at the file beginning.\n");
+		return -1;
+	}
 	
 	// Generate the output file name
-	snprintf(String_Output_File_Name, sizeof(String_Output_File_Name), "%s\\Terrain_Geometry.obj", Pointer_String_Output_Path);
+	snprintf(String_Output_File_Name, sizeof(String_Output_File_Name), "%s/Terrain_Geometry.obj", Pointer_String_Output_Path);
 	printf("Saving terrain geometry to \"%s\" file.\n", String_Output_File_Name);
 	
 	// Try to open output file
@@ -355,19 +419,20 @@ static int MapGenerateTerrain(char *Pointer_String_Output_Path)
 	
 	// Append vertices to file
 	printf("Adding vertices...\n");
-	for (Vertex_Y = 0; Vertex_Y < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_Y++)
+	for (Vertex_Y = 0; Vertex_Y < Map_Vertices_Per_Side; Vertex_Y++)
 	{
-		for (Vertex_X = 0; Vertex_X < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++) fprintf(Pointer_File, "v %d %d %f\n", Vertex_X, Vertex_Y, MapTerrainHeights[Vertex_Y][Vertex_X]);
+		for (Vertex_X = 0; Vertex_X < Map_Vertices_Per_Side; Vertex_X++) fprintf(Pointer_File, "v %d %d %f\n", Vertex_X, Vertex_Y, Map_Terrain_Heights[Vertex_Y][Vertex_X]);
 	}
 	
 	// Generate quad faces from the vertices
 	printf("Adding faces...\n");
-	for (Tile_Row = 0; Tile_Row < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE * ((MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE) - 1); Tile_Row += MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE)
+	Tiles_Count = Map_Vertices_Per_Side * (Map_Vertices_Per_Side - 1); // Do not take last row into account because it is the bottom part of the last quads
+	for (Tile_Row = 0; Tile_Row < Tiles_Count; Tile_Row += Map_Vertices_Per_Side)
 	{
-		for (Vertex_X = 1; Vertex_X < MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE; Vertex_X++)
+		for (Vertex_X = 1; Vertex_X < Map_Vertices_Per_Side; Vertex_X++)
 		{
 			Face_Vertices_Offset = Vertex_X + Tile_Row;
-			fprintf(Pointer_File, "f %d %d %d %d\n", Face_Vertices_Offset, Face_Vertices_Offset + 1, Face_Vertices_Offset + (MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE) + 1, Face_Vertices_Offset + (MAP_TERRAIN_GEOMETRY_TILES_PER_SIDE * MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE));
+			fprintf(Pointer_File, "f %d %d %d %d\n", Face_Vertices_Offset, Face_Vertices_Offset + 1, Face_Vertices_Offset + Map_Vertices_Per_Side + 1, Face_Vertices_Offset + Map_Vertices_Per_Side);
 		}
 	}
 	
