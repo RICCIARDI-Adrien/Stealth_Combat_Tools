@@ -1,12 +1,19 @@
 /** @file Main.c
- * Allow to uncompress or to create an IDP archive file (like SCom.idp).
+ * Propose a collection of tools to mod Stealth Combat - Utimate War.
  * @author Adrien RICCIARDI
  */
 #include <direct.h>
+#include <IDP_Archive.h>
 #include <stdio.h>
 #include <string.h>
 #include <Windows.h>
-#include "IDP_Archive.h"
+
+//-------------------------------------------------------------------------------------------------
+// Private constants
+//-------------------------------------------------------------------------------------------------
+/** The command string to build an IDP file. */
+#define MAIN_COMMAND_STRING_IDP_BUILD "-idp-build"
+#define MAIN_COMMAND_STRING_IDP_EXTRACT "-idp-extract"
 
 //-------------------------------------------------------------------------------------------------
 // Private functions
@@ -16,19 +23,19 @@
  */
 static void MainDisplayProgramUsage(char *Pointer_String_Program_Name)
 {
-	printf("Usage : %s Command Input_Path Output_Path.\n"
+	printf("Usage : %s Command Input_Path Output_Path\n"
 		"Command :\n"
-		"  -c : compress a directory into an IDP file. Input_Path is the path to the directory to compress. Output_Path is the path of the IDP file to create.\n"
-		"  -u : uncompress an existing IDP file. Input_Path is the path of the IDP file to uncompress. Output_Path is a directory path where data will be extracted.\n", Pointer_String_Program_Name);
+		"  " MAIN_COMMAND_STRING_IDP_BUILD " (not implemented) : generate an IDP file from a directory. Input_Path is the path of the source directory. Output_Path is the path of the IDP file to create.\n"
+		"  " MAIN_COMMAND_STRING_IDP_EXTRACT " : extract the content of an existing IDP file(like SCom.idp). Input_Path is the path of the IDP file to extract. Output_Path is a directory path where the data will be extracted.\n", Pointer_String_Program_Name);
 }
 
-/** Uncompress an IDP archive.
- * @param Pointer_String_Input_File The IDP file to uncompress.
- * @param Pointer_File_Output_Directory The directory to put uncompressed data to.
- * @return 0 if archive was successfully uncompressed,
- * @return -1 if an error occurred.
+/** Extract the content of an IDP archive.
+ * @param Pointer_String_Input_File The IDP file to extract.
+ * @param Pointer_File_Output_Directory The directory to put the extracted data to.
+ * @return -1 if an error occurred,
+ * @return 0 if the archive was successfully extracted. 
  */
-static int MainUncompress(char *Pointer_String_Input_File, char *Pointer_File_Output_Directory)
+static int MainIDPExtract(char *Pointer_String_Input_File, char *Pointer_File_Output_Directory)
 {
 	TIDPArchiveTag *Pointer_IDP_Tags;
 	int Tags_Count, i, Return_Value = -1;
@@ -120,8 +127,8 @@ int main(int argc, char *argv[])
 	}
 	
 	// Handle command
-	if (strcmp(argv[1], "-c") == 0) printf("Compress command is not available yet.\n");
-	else if (strcmp(argv[1], "-u") == 0) return MainUncompress(argv[2], argv[3]);
+	if (strcmp(argv[1], MAIN_COMMAND_STRING_IDP_BUILD) == 0) printf("the IDP build command is not yet available.\n");
+	else if (strcmp(argv[1], MAIN_COMMAND_STRING_IDP_EXTRACT) == 0) return MainIDPExtract(argv[2], argv[3]);
 	else
 	{
 		printf("Error : unknown command.\n");
