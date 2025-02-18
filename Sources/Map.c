@@ -19,6 +19,9 @@
 /** How many vertices per side of a tile (i.e. a tile width or a tile height in vertex units). A tile is square. */
 #define MAP_TERRAIN_GEOMETRY_VERTICES_PER_TILE_SIDE 16
 
+/** The name of the file that stores the units information. */
+#define MAP_FILE_NAME_UNITS "Units.ini"
+
 //-------------------------------------------------------------------------------------------------
 // Private types
 //-------------------------------------------------------------------------------------------------
@@ -45,6 +48,31 @@ static int Map_Vertices_Per_Side = -1;
 //-------------------------------------------------------------------------------------------------
 // Private functions
 //-------------------------------------------------------------------------------------------------
+/** Concatenate the prefix and the file name and try to open the file.
+ * @param Pointer_String_Prefix_Path The base path.
+ * @param Pointer_String_File_Name The file name to append to the base path.
+ * @param Pointer_String_Opening_Mode The mode to provide to fopen().
+ * @return NULL if an error occurred,
+ * @return a non-NULL value on success.
+ */
+static FILE *MapOpenFileWithPrefixPath(const char *Pointer_String_Prefix_Path, const char *Pointer_String_File_Name, const char *Pointer_String_Opening_Mode)
+{
+	static char String_File_Path[1024]; // Should be enough for all files; the variable is allocated statically because the function can't be called in a reentrant way
+	FILE *Pointer_File;
+
+	// Concatenate the path and the file name
+	if (snprintf(String_File_Path, sizeof(String_File_Path), "%s/%s", Pointer_String_Prefix_Path, Pointer_String_File_Name) >= sizeof(String_File_Path))
+	{
+		printf("Error when trying to open the file \"%s\", the file path is too long.\n", Pointer_String_File_Name);
+		return NULL;
+	}
+
+	// Try to open the file
+	Pointer_File = fopen(String_File_Path, Pointer_String_Opening_Mode);
+
+	return Pointer_File;
+}
+
 /** Handle type 0 records.
  * @param Pointer_Payload The record payload.
  * @param Payload_Size The payload size in bytes.
@@ -225,9 +253,52 @@ static int MapRecordHandlerIdentifier6(unsigned char *Pointer_Payload, int Paylo
  */
 static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Payload_Size, char *Pointer_String_Output_Path)
 {
-	printf("Found a units record. It is currently not supported.\n");
+	FILE *Pointer_File;
+	int Return_Value = -1;
+	unsigned int *Pointer_Double_Word;
 
-	return 0;
+	printf("Found a units record. It is currently partially supported.\n");
+
+	// Append the data to the dedicated file
+	Pointer_File = MapOpenFileWithPrefixPath(Pointer_String_Output_Path, MAP_FILE_NAME_UNITS, "a");
+	if (Pointer_File == NULL)
+	{
+		printf("Error : failed to open the units file (%s).", strerror(errno));
+		return -1;
+	}
+
+	// Write the section name (the error codes are not checked to avoid adding a lot of checks)
+	fprintf(Pointer_File, "[Unit]\n");
+
+	// Extract the unit name
+	printf("Name : \"%s\".\n", Pointer_Payload);
+	fprintf(Pointer_File, "; This name matches with a single name in the units section of the map script file\nName=\"%s\"\n", Pointer_Payload);
+	Pointer_Payload += 32; // There seem to be a 32-byte fixed width for this string
+
+	// The name is followed by a variable amount of unknown data, bypass them for now
+	Pointer_Double_Word = (unsigned int *) Pointer_Payload;
+	if (*Pointer_Double_Word == 0) Pointer_Payload += 12;
+	else if (*Pointer_Double_Word == 1) Pointer_Payload += 20;
+	else if (*Pointer_Double_Word == 2) Pointer_Payload += 16;
+	else
+	{
+		printf("Error : unknown field value %u following the unit name in the map file, aborting.", *Pointer_Double_Word);
+		goto Exit;
+	}
+
+	// Extract the unit type
+	fprintf(Pointer_File, "; This type is declared in the app/units file\nType=\"%s\"\n", Pointer_Payload);
+	// TODO
+
+	// Everything went well
+	Return_Value = 0;
+
+Exit:
+	// Separate each section by an empty line
+	fprintf(Pointer_File, "\n");
+	fclose(Pointer_File);
+
+	return Return_Value;
 }
 
 /** Handle type 8 records.
@@ -448,7 +519,7 @@ static int MapGenerateTerrain(char *Pointer_String_Output_Path)
 int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_Path)
 {
 	static unsigned char Payload_Buffer[20 * 1024 * 1024]; // 20 MB is enough for all existing maps
-	FILE *Pointer_File_Map = NULL;
+	FILE *Pointer_File_Map = NULL, *Pointer_File;
 	int Return_Value = -1, Temporary_Integer, Record_Identifier, Records_Count = 1, Record_Payload_Size, Record_Offset;
 	char String_Temporary[5];
 	MapRecordHandler Record_Handler_Functions[] =
@@ -508,6 +579,11 @@ int MapExtract(char *Pointer_String_Map_File_Name, char *Pointer_String_Output_P
 	
 	// Take the two above tags into account
 	Record_Offset = 8;
+
+	// Reset or remove some files from the output directory (if any), so a new map extraction data can't mix with an old one
+	// Remove the units file previous content
+	Pointer_File = MapOpenFileWithPrefixPath(Pointer_String_Output_Path, MAP_FILE_NAME_UNITS, "w");
+	if (Pointer_File != NULL) fclose(Pointer_File);
 	
 	// Parse all file records
 	while (1)
