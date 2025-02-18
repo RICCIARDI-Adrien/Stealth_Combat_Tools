@@ -1,10 +1,35 @@
 # Stealth Combat Tools
+
 Contain some tools to mod Stealth Combat - Ultimate War video game.
 
 * IDP archive : allows to extract IDP files, like `SCom.idp`, which contain the game resources.
 * Map files : allows to extract some resources from a game map (the `SCom.idp` archive must be first extracted to get access to the `app/maps` directory containing the maps).
 
+# Usage
+
+This guide is designed for Windows 10 and Windows 11 with a x86_64 (64-bit) processor.
+
+## Extracting the game resource
+
+1. Install Stealth Combat on your computer. Let's assume that you installed the game to the default directory `C:\Program Files (x86)\Deck13\Stealth Combat - Ultimate War`.
+1. Copy the game directory `C:\Program Files (x86)\Deck13\Stealth Combat - Ultimate War` and all its content to your desktop, this will allow to modify the game files without being annoyed by the Windows protections on the `Program Files (x86)` directory.
+1. Build the Stealth Combat Tools command-line program using Visual Studio Community 2022 or higher. You can also download a prebuilt executable named `Stealth_Combat_Tools.exe` [here](https://github.com/RICCIARDI-Adrien/Stealth_Combat_Tools/releases) (select the latest one).
+1. Using the Windows Explorer, go to the directory where the `Stealth_Combat_Tools.exe` has been built or downloaded.
+1. Hold the Shift key then right-click with the mouse. In the opened context menu, select "Open PowerShell window here". The Windows command-line interface window will open.
+1. Assuming that you have made a copy of the game on your desktop, copy the following command into the Windows command-line interface and press Enter to execute it :
+   1. `.\Stealth_Combat_Tools.exe -idp-extract "$env:USERPROFILE\Desktop\Stealth Combat - Ultimate War\SCom.idp" "$env:USERPROFILE\Desktop\Stealth Combat - Ultimate War"`
+   1. After a while, the tool will finish to extract all game resources and will display `All files were successfully created.`.
+
+## Moding the game
+
+* Starting from now, the Stealth Combat game on your Windows desktop will load the game resources from the newly created `App` directory, even if the `SCom.idp` file is still present.
+* You can mod the `App` directory content, then start the game by running the `SCom.exe` executable.
+* If you broke the game when modifying it, just delete the `App` directory and extract it again to have a fresh copy.
+
+# Technical information
+
 ## IDP file structure
+
 * Offset 0 to 3 : "IDPK" : IDP file signature
 * Offset 4 to 7 : 0x64 : IDP file version
 * Offset 8 to 11 : 0x1101 : tags count
@@ -12,6 +37,7 @@ Contain some tools to mod Stealth Combat - Ultimate War video game.
 * Offset <value determined when all tag names are parsed> + 1 to file end : tags data
 
 ### Tag structure
+
 * 4 bytes : tag name size. Tag name is an ASCIIZ string, terminating zero is included in name size. For example, "app\rules_weapon.txt" tag name has a size of 0x15 bytes.
 * tag name size bytes : tag name ASCIIZ string.
 * 4 bytes : tag data offset from data section start.
