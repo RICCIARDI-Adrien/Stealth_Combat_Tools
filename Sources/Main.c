@@ -4,6 +4,7 @@
  */
 #include <direct.h>
 #include <IDP_Archive.h>
+#include <Map.h>
 #include <stdio.h>
 #include <string.h>
 #include <Windows.h>
@@ -13,7 +14,10 @@
 //-------------------------------------------------------------------------------------------------
 /** The command string to build an IDP file. */
 #define MAIN_COMMAND_STRING_IDP_BUILD "-idp-build"
+/** The command string to extract an IDP file content. */
 #define MAIN_COMMAND_STRING_IDP_EXTRACT "-idp-extract"
+/** The command string to extract a map file content. */
+#define MAIN_COMMAND_STRING_MAP_EXTRACT "-map-extract"
 
 //-------------------------------------------------------------------------------------------------
 // Private functions
@@ -23,10 +27,15 @@
  */
 static void MainDisplayProgramUsage(char *Pointer_String_Program_Name)
 {
-	printf("Usage : %s Command Input_Path Output_Path\n"
+	printf("Usage : %s Command [Arguments]\n"
 		"Command :\n"
-		"  " MAIN_COMMAND_STRING_IDP_BUILD " (not implemented) : generate an IDP file from a directory. Input_Path is the path of the source directory. Output_Path is the path of the IDP file to create.\n"
-		"  " MAIN_COMMAND_STRING_IDP_EXTRACT " : extract the content of an existing IDP file(like SCom.idp). Input_Path is the path of the IDP file to extract. Output_Path is a directory path where the data will be extracted.\n", Pointer_String_Program_Name);
+		"  " MAIN_COMMAND_STRING_IDP_BUILD " Input_Directory Output_IDP_File (not implemented) : generate an IDP file from a directory. Input_Directory is the path of the source directory. Output_IDP_File is the path of the IDP file to create.\n"
+		"  " MAIN_COMMAND_STRING_IDP_EXTRACT " Input_IDP_File Output_Directory : extract the content from an existing IDP file (like SCom.idp). Input_IDP_File is the path of the IDP file to extract. Output_Directory is a directory path where the data will be extracted.\n"
+		"  " MAIN_COMMAND_STRING_MAP_EXTRACT " Input_Map_File Output_Directory : extract as much content as possible from an existing map file. Input_Map_File is the path of the map file to extract. Output_Directory is a directory path where the data will be extracted.\n"
+		"\n"
+		"Notes :\n"
+		"  * The map files are stored in the SCom.idp archive, so it needs to be extracted first.\n",
+		Pointer_String_Program_Name);
 }
 
 /** Extract the content of an IDP archive.
@@ -119,16 +128,31 @@ Exit:
 //-------------------------------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+	int Return_Value = EXIT_FAILURE;
+
 	// Check parameters
-	if (argc != 4)
+	if (argc < 2)
 	{
 		MainDisplayProgramUsage(argv[0]);
 		return EXIT_FAILURE;
 	}
 	
 	// Handle command
-	if (strcmp(argv[1], MAIN_COMMAND_STRING_IDP_BUILD) == 0) printf("the IDP build command is not yet available.\n");
-	else if (strcmp(argv[1], MAIN_COMMAND_STRING_IDP_EXTRACT) == 0) return MainIDPExtract(argv[2], argv[3]);
+	if (strcmp(argv[1], MAIN_COMMAND_STRING_IDP_BUILD) == 0)
+	{
+		if (argc == 4) printf("the IDP build command is not yet available.\n");
+		else MainDisplayProgramUsage(argv[0]);
+	}
+	else if (strcmp(argv[1], MAIN_COMMAND_STRING_IDP_EXTRACT) == 0)
+	{
+		if (argc == 4) Return_Value = MainIDPExtract(argv[2], argv[3]);
+		else MainDisplayProgramUsage(argv[0]);
+	}
+	else if (strcmp(argv[1], MAIN_COMMAND_STRING_MAP_EXTRACT) == 0)
+	{
+		if (argc == 4) Return_Value = MapExtract(argv[2], argv[3]);
+		else MainDisplayProgramUsage(argv[0]);
+	}
 	else
 	{
 		printf("Error : unknown command.\n");
@@ -136,5 +160,5 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	
-	return EXIT_SUCCESS;
+	return Return_Value;
 }

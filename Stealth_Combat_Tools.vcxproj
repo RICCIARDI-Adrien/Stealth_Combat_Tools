@@ -20,10 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Includes\IDP_Archive.h" />
+    <ClInclude Include="Includes\Map.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\IDP_Archive.c" />
     <ClCompile Include="Sources\Main.c" />
+    <ClCompile Include="Sources\Map.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
