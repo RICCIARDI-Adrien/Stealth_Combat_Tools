@@ -123,6 +123,28 @@ Exit:
 	return Return_Value;
 }
 
+/** Extract as much content as possible from a map file.
+ * @param Pointer_String_Input_File The map file to extract.
+ * @param Pointer_File_Output_Directory The directory to put the extracted data to.
+ * @return -1 if an error occurred,
+ * @return 0 if the map was successfully extracted.
+ */
+static int MainMapExtract(char* Pointer_String_Input_File, char* Pointer_File_Output_Directory)
+{
+	// Try to create the output directory
+	if (_mkdir(Pointer_File_Output_Directory) != 0)
+	{
+		if (errno != EEXIST)
+		{
+			printf("Error : failed to create the output directory (%s).\n", strerror(errno));
+			return -1;
+		}
+	}
+
+	// Retrieve the map content
+	return MapExtract(Pointer_String_Input_File, Pointer_File_Output_Directory);
+}
+
 //-------------------------------------------------------------------------------------------------
 // Entry point
 //-------------------------------------------------------------------------------------------------
@@ -150,7 +172,7 @@ int main(int argc, char *argv[])
 	}
 	else if (strcmp(argv[1], MAIN_COMMAND_STRING_MAP_EXTRACT) == 0)
 	{
-		if (argc == 4) Return_Value = MapExtract(argv[2], argv[3]);
+		if (argc == 4) Return_Value = MainMapExtract(argv[2], argv[3]);
 		else MainDisplayProgramUsage(argv[0]);
 	}
 	else
