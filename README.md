@@ -1,7 +1,8 @@
 # Stealth Combat Tools
 Contain some tools to mod Stealth Combat - Ultimate War video game.
 
-* IDP_Manager allows to uncompress IDP files, like SCom.idp, which contain game resources.
+* IDP archive : allows to extract IDP files, like `SCom.idp`, which contain the game resources.
+* Map files : allows to extract some resources from a game map (the `SCom.idp` archive must be first extracted to get access to the `app/maps` directory containing the maps).
 
 ## IDP file structure
 * Offset 0 to 3 : "IDPK" : IDP file signature
