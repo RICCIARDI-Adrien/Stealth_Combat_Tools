@@ -3,9 +3,9 @@
  * @author Adrien RICCIARDI
  */
 #include <errno.h>
+#include <Map.h>
 #include <stdio.h>
 #include <string.h>
-#include "Map.h"
 
 //-------------------------------------------------------------------------------------------------
 // Private constants
