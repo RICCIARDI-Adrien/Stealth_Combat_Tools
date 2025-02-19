@@ -22,7 +22,7 @@ This guide is designed for Windows 10 and Windows 11 with a x86_64 (64-bit) proc
 
 ## Moding the game
 
-* Starting from now, the Stealth Combat game on your Windows desktop will load the game resources from the newly created `App` directory, even if the `SCom.idp` file is still present.
+* **Important** : to make the Stealth Combat game on your Windows desktop use the extracted game resource from the newly created `App` directory, you have to rename the `SCom.idp` file (for instance you can rename it to `SCom.idp.bak`). Otherwise, the `SCom.idp` resource will be used.
 * You can mod the `App` directory content, then start the game by running the `SCom.exe` executable.
 * If you broke the game when modifying it, just delete the `App` directory and extract it again to have a fresh copy.
 
