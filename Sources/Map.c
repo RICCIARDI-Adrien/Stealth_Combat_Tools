@@ -270,7 +270,7 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 	// The section name is the unit group name
 	printf("Unit group name : \"%s\".\n", Pointer_Payload);
 	fprintf(Pointer_File, "; The section name matches with a single name in the units section of the map script file\n[%s]\n", Pointer_Payload);
-	Pointer_Payload += 32; // There seem to be a 32-byte fixed width for this string
+	Pointer_Payload += 32; // There seems to be a 32-byte fixed width for this string
 
 	// The name is followed by a variable amount of unknown data, bypass them for now to reach the amount of units in the group
 	Pointer_Double_Word = (unsigned int *) Pointer_Payload;
@@ -294,8 +294,24 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 	{
 		// Extract the unit type
 		fprintf(Pointer_File, "; This type is declared in the app/units file\nUnit%uType=\"%s\"\n", i, Pointer_Payload);
+		Pointer_Payload += 24; // There seems to be a 24-byte fixed width for this string
 
-		Pointer_Payload += 60;
+		// Bypass unknown fields (flags ?)
+		Pointer_Payload += 12;
+
+		// Extract the unit coordinates in the world
+		// X
+		Pointer_Double_Word = (unsigned int*) Pointer_Payload;
+		fprintf(Pointer_File, "Unit%uCoordinateX=%u\n", i, *Pointer_Double_Word);
+		Pointer_Payload += 8;
+		// Y
+		Pointer_Double_Word = (unsigned int*) Pointer_Payload;
+		fprintf(Pointer_File, "Unit%uCoordinateY=%u\n", i, *Pointer_Double_Word);
+		Pointer_Payload += 8;
+		// Z
+		Pointer_Double_Word = (unsigned int*) Pointer_Payload;
+		fprintf(Pointer_File, "Unit%uCoordinateZ=%u\n", i, *Pointer_Double_Word);
+		Pointer_Payload += 8;
 	}
 
 	// TODO
