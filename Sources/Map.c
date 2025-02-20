@@ -255,7 +255,7 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 {
 	FILE *Pointer_File;
 	int Return_Value = -1;
-	unsigned int *Pointer_Double_Word;
+	unsigned int *Pointer_Double_Word, Units_Count, i;
 
 	printf("Found a units record. It is currently partially supported.\n");
 
@@ -267,27 +267,37 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 		return -1;
 	}
 
-	// Write the section name (the error codes are not checked to avoid adding a lot of checks)
-	fprintf(Pointer_File, "[Unit]\n");
-
-	// Extract the unit name
-	printf("Name : \"%s\".\n", Pointer_Payload);
-	fprintf(Pointer_File, "; This name matches with a single name in the units section of the map script file\nName=\"%s\"\n", Pointer_Payload);
+	// The section name is the unit group name
+	printf("Unit group name : \"%s\".\n", Pointer_Payload);
+	fprintf(Pointer_File, "; The section name matches with a single name in the units section of the map script file\n[%s]\n", Pointer_Payload);
 	Pointer_Payload += 32; // There seem to be a 32-byte fixed width for this string
 
-	// The name is followed by a variable amount of unknown data, bypass them for now
+	// The name is followed by a variable amount of unknown data, bypass them for now to reach the amount of units in the group
 	Pointer_Double_Word = (unsigned int *) Pointer_Payload;
-	if (*Pointer_Double_Word == 0) Pointer_Payload += 12;
-	else if (*Pointer_Double_Word == 1) Pointer_Payload += 20;
-	else if (*Pointer_Double_Word == 2) Pointer_Payload += 16;
+	if (*Pointer_Double_Word == 0) Pointer_Payload += 8;
+	else if (*Pointer_Double_Word == 1) Pointer_Payload += 12;
+	else if (*Pointer_Double_Word == 2) Pointer_Payload += 12;
 	else
 	{
 		printf("Error : unknown field value %u following the unit name in the map file, aborting.", *Pointer_Double_Word);
 		goto Exit;
 	}
 
-	// Extract the unit type
-	fprintf(Pointer_File, "; This type is declared in the app/units file\nType=\"%s\"\n", Pointer_Payload);
+	// Retrieve the amount of units in the group
+	Pointer_Double_Word = (unsigned int*) Pointer_Payload;
+	Units_Count = *Pointer_Double_Word;
+	Pointer_Payload += 4;
+	fprintf(Pointer_File, "UnitsCount=%u\n", Units_Count);
+
+	// Extract each single unit from the group
+	for (i = 0; i < Units_Count; i++)
+	{
+		// Extract the unit type
+		fprintf(Pointer_File, "; This type is declared in the app/units file\nUnit%uType=\"%s\"\n", i, Pointer_Payload);
+
+		Pointer_Payload += 60;
+	}
+
 	// TODO
 
 	// Everything went well
