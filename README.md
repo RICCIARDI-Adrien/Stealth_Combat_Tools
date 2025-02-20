@@ -20,11 +20,29 @@ This guide is designed for Windows 10 and Windows 11 with a x86_64 (64-bit) proc
    1. `.\Stealth_Combat_Tools.exe -idp-extract "$env:USERPROFILE\Desktop\Stealth Combat - Ultimate War\SCom.idp" "$env:USERPROFILE\Desktop\Stealth Combat - Ultimate War"`
    1. After a while, the tool will finish to extract all game resources and will display `All files were successfully created.`.
 
-## Moding the game
+## Modding the game
 
 * **Important** : to make the Stealth Combat game on your Windows desktop use the extracted game resource from the newly created `App` directory, you have to rename the `SCom.idp` file (for instance you can rename it to `SCom.idp.bak`). Otherwise, the `SCom.idp` resource will be used.
 * You can mod the `App` directory content, then start the game by running the `SCom.exe` executable.
 * If you broke the game when modifying it, just delete the `App` directory and extract it again to have a fresh copy.
+
+## Modyfing / adding friendly units
+
+**Note :** this does not work with the tutorial missions, but works will all E.M.A. and G.A. missions.
+
+* Open the `App\units` file with a text editor. This file contains all available units in the game and will be needed later.
+* Select the mission you want to modify : go to the `App\scripts` directory and open the `.txt` file you want.
+* Locate the first line `tf_default_X`, where `X` is a number starting from 1. These lines are often preceded by the comment `/* taskforce configuration */`.
+* You can then add other units by adding more `tf_default_Y`, `tf_default_Z` and so on lines. Use the unit names from the first column of the `App\units` file to specify which unit to spawn.
+
+Example for the third G.A. mission (`App\scripts\ga3.txt`) :
+```
+/* taskforce configuration */
+tf_default_1				1	GADTank;
+tf_default_2				1	GAMedTank;
+tf_default_3				1	Jeep;
+tf_default_4				1	MERCTank;
+```
 
 # Technical information
 
