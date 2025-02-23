@@ -283,16 +283,26 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 		goto Exit;
 	}
 	fprintf(Pointer_File, "RecordType=%u\n", Record_Type);
+
 	// Extract additional information according to the record type
-	if (Record_Type == 1) Pointer_Payload += 4; // TODO
-	// The format is 0x00000002 0x00000007 0x<index in unit list>
-	// The value 0x00000007 does not seem to be used, setting it to 0 seems to have no effect
-	// The index in the unit list seems to be multiplied by 4
-	else if (Record_Type == 2)
+	if ((Record_Type == 1) || (Record_Type == 2))
 	{
+		// The formats are :
+		//     0x00000001 0x00000007 0x<index in units list> 0x<index in units list 2>
+		//     0x00000002 0x00000007 0x<index in units list>
+		// The value 0x00000007 does not seem to be used, setting it to 0 seems to have no effect
+		// The indices in the units list seem to be multiplied by 4
 		Pointer_Double_Word = (unsigned int *) Pointer_Payload;
 		fprintf(Pointer_File, "UnitsListIndex=%u\n", *Pointer_Double_Word);
 		Pointer_Payload += 4;
+
+		// Extract the second index in the units list
+		if (Record_Type == 1)
+		{
+			Pointer_Double_Word = (unsigned int *) Pointer_Payload;
+			fprintf(Pointer_File, "UnitsListIndex2=%u\n", *Pointer_Double_Word);
+			Pointer_Payload += 4;
+		}
 	}
 
 	// Retrieve the amount of units in the group
