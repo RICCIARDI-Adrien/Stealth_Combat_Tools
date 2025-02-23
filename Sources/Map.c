@@ -256,6 +256,7 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 	FILE *Pointer_File;
 	int Return_Value = -1;
 	unsigned int *Pointer_Double_Word, Units_Count, i, Record_Type;
+	char *Pointer_String_Group_Name;
 
 	printf("Found a units record. It is currently partially supported.\n");
 
@@ -268,8 +269,9 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 	}
 
 	// The section name is the unit group name
-	printf("Unit group name : \"%s\".\n", Pointer_Payload);
-	fprintf(Pointer_File, "; The section name matches with a single name in the units section of the map script file\n[%s]\n", Pointer_Payload);
+	Pointer_String_Group_Name = Pointer_Payload;
+	printf("Unit group name : \"%s\".\n", Pointer_String_Group_Name);
+	fprintf(Pointer_File, "; The section name matches with a single name in the units section of the map script file\n[%s]\n", Pointer_String_Group_Name);
 	Pointer_Payload += 32; // There seems to be a 32-byte fixed width for this string
 
 	// The name is followed by what has been called "record type"
@@ -285,7 +287,7 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 	fprintf(Pointer_File, "RecordType=%u\n", Record_Type);
 
 	// Extract additional information according to the record type
-	if ((Record_Type == 1) || (Record_Type == 2))
+	if (((Record_Type == 1) || (Record_Type == 2)) && (strcmp(Pointer_String_Group_Name, "trains") != 0)) // The trais issue is in the ema11 map
 	{
 		// The formats are :
 		//     0x00000001 0x00000007 0x<index in units list> 0x<index in units list 2>
@@ -297,7 +299,7 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 		Pointer_Payload += 4;
 
 		// Extract the second index in the units list
-		if (Record_Type == 1)
+		if ((Record_Type == 1) && (strcmp(Pointer_String_Group_Name, "transheli") != 0)) // The transheli issue is in the ga2 map
 		{
 			Pointer_Double_Word = (unsigned int *) Pointer_Payload;
 			fprintf(Pointer_File, "UnitsListIndex2=%u\n", *Pointer_Double_Word);
