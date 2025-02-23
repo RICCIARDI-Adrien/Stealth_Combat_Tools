@@ -255,7 +255,7 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 {
 	FILE *Pointer_File;
 	int Return_Value = -1;
-	unsigned int *Pointer_Double_Word, Units_Count, i;
+	unsigned int *Pointer_Double_Word, Units_Count, i, Record_Type;
 
 	printf("Found a units record. It is currently partially supported.\n");
 
@@ -272,19 +272,31 @@ static int MapRecordHandlerIdentifier7(unsigned char *Pointer_Payload, int Paylo
 	fprintf(Pointer_File, "; The section name matches with a single name in the units section of the map script file\n[%s]\n", Pointer_Payload);
 	Pointer_Payload += 32; // There seems to be a 32-byte fixed width for this string
 
-	// The name is followed by a variable amount of unknown data, bypass them for now to reach the amount of units in the group
+	// The name is followed by what has been called "record type"
 	Pointer_Double_Word = (unsigned int *) Pointer_Payload;
-	if (*Pointer_Double_Word == 0) Pointer_Payload += 8;
-	else if (*Pointer_Double_Word == 1) Pointer_Payload += 12;
-	else if (*Pointer_Double_Word == 2) Pointer_Payload += 12;
-	else
+	Record_Type = *Pointer_Double_Word;
+	Pointer_Payload += 8; // Also bypass the following 0x00000007, it does not seem to be used (setting it to 0 seems to have no effect)
+	// Only some record types 0, 1 and 2 are supported for now
+	if (Record_Type > 2)
 	{
-		printf("Error : unknown field value %u following the unit name in the map file, aborting.", *Pointer_Double_Word);
+		printf("Error : unknown record type %u following the unit name in the map file, aborting.\n", Record_Type);
 		goto Exit;
+	}
+	fprintf(Pointer_File, "RecordType=%u\n", Record_Type);
+	// Extract additional information according to the record type
+	if (Record_Type == 1) Pointer_Payload += 4; // TODO
+	// The format is 0x00000002 0x00000007 0x<index in unit list>
+	// The value 0x00000007 does not seem to be used, setting it to 0 seems to have no effect
+	// The index in the unit list seems to be multiplied by 4
+	else if (Record_Type == 2)
+	{
+		Pointer_Double_Word = (unsigned int *) Pointer_Payload;
+		fprintf(Pointer_File, "UnitsListIndex=%u\n", *Pointer_Double_Word);
+		Pointer_Payload += 4;
 	}
 
 	// Retrieve the amount of units in the group
-	Pointer_Double_Word = (unsigned int*) Pointer_Payload;
+	Pointer_Double_Word = (unsigned int *) Pointer_Payload;
 	Units_Count = *Pointer_Double_Word;
 	Pointer_Payload += 4;
 	fprintf(Pointer_File, "UnitsCount=%u\n", Units_Count);
